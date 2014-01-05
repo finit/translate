@@ -1,0 +1,505 @@
+﻿
+==================================================================================
+
+                                   Chap. 1
+                        Description of FPU Internals            
+                                FPU内部部件
+
+The FPU simply has eight identical 80-bit registers and three 16-bit registers
+(Control Word, Status Word and Tag Word) accessible to the programmer. It also has
+an internal flag register which is not accessible to the programmer.
+
+FPU仅有8个相同的 80位寄存器，3个 16位寄存器(控制字，状态字，标签字)可供程序员访问
+。另外一个 内部标志寄存器 程序员是不可访问的。
+
+
+80-bit Registers
+80位寄存器
+
+The 80-bit registers are generally designated in most literature as a stack of
+eight registers. To better understand how these 80-bit registers function, instead
+of imagining them as a stack, it will be easier to imagine them as a revolver
+barrel with 8 compartments numbered clock-wise from 0 to 7. When the FPU is
+initialized, all the compartments are empty and Barrel Compartment #0 (BC0) would
+be at the 12 o'clock position (at the TOP), as depicted in Fig.1.1 below.
+
+在大多数文献中，80位寄存器 被普遍地描述成 栈形式 的8个寄存器。要更好地理解这些寄存
+器是如何工作的，以其把它们想象成一个栈，不如把它们想象成一个左轮手枪的转轮，这个转轮
+有8个弹巢，从0到7按顺时针排列。当FPU初始化时，所有的弹巢(寄存器)是空的，并且0号
+(BC0)弹巢将被置于12点钟方向(最顶端)，如下图 Fig.1.1 所示：
+
+                                 _---_ 
+                               /   0   \
+                             / 7       1 \
+                            |6           2|
+                             \ 5       3 /
+                               \   4   / 
+                                  ---
+                                Fig.1.1
+
+    Note: These Barrel Compartment (BC) numbers are strictly for internal use by
+    the FPU. They are used to identify each compartment as a physical unit
+    similarly to the EAX, EBX, etc. registers in the CPU. (There is NO revolving
+    barrel nor any stack as such in the FPU.)
+
+    注意：这些弹巢(BC)严格地被FPU内部使用。就像CPU中的寄存器EAX，EBX……它们被用来
+    将一个弹巢(寄存器)标识为一个物理单位。(实际上，这里没有什么转轮，也不是所有的
+    栈都像FPU这样。)
+
+When the FPU would be instructed to LOAD a value, it would turn the barrel
+clockwise by one notch and load the specified value in the top compartment. The
+first value loaded immediately after the FPU is initialized would thus go into BC7
+according to the FPU's internal numbering system.
+
+当FPU被指定装入一个值，转轮顺时针旋转一格，并将这个值装到最顶端的弹巢中。根据FPU内
+部编号系统，在FPU初始化后，第一个值被立即放入到 7号弹巢(BC7) 中。
+
+
+If the FPU would be instructed to load another value while the first one is still
+in BC7, it would again turn the barrel clockwise by one notch and load the
+specified value again in the top compartment, which would now be BC6.
+
+当第一个值还在 7号弹巢(BC7) 里的时候，如果FPU被指定装入另一个值，转轮再次顺时针旋
+转一格，并将这个值装到最上方的弹巢中——6号弹巢(BC6)。
+
+
+        Values can be loaded only into the TOP compartment of the FPU
+
+        值只能被装入到最上方的弹巢中。
+
+
+This could continue until all the compartments contain a value. If, however, an
+attempt is made to load a value when all the compartments have a value in them,
+the barrel would still turn by one notch but the attempted loading would fail
+(just like trying to insert a bullet into a compartment which already contains
+one). And, in addition, whatever valid value would have been in that compartment
+now at the TOP is also destroyed, leaving unusable trash in that register at the
+TOP.
+
+可以继续填装，直到每个弹巢都有一个值。然而当转轮装满值时，再次尝试装入值将会失败，
+但转轮还是会旋转一格(就像往已经有子弹的弹巢中再装入一颗子弹一样)。另外，这个尝试装
+入值的弹巢，现在在最顶端，之前无论有什么值，都会被摧毁，留下一个不可用的垃圾值。
+
+
+Rule #1: An FPU 80-bit register compartment MUST be free (empty) in order to load
+a value into it.
+
+规则 1：80位寄存器 的弹巢必须是空的才能装入值。
+
+
+Quite fortunately, these registers can be emptied with various FPU instructions.
+The most common way is generally referred to as "popping a register". The "pop"
+mnemonic used for the CPU is not available for the FPU. Instead, it can be
+included as a part of numerous FPU instructions; such instruction would be carried
+out normally and then immediately followed by popping the register at the TOP.
+
+幸运的是，这些寄存器可以被各种FPU指令清空。最常见的方法是使用“弹出寄存器”指令。
+“pop”指令只对CPU可用，FPU不可用。作为替换，弹出指令成为各种FPU指令的一部分；例如
+在指令正常执行后，立即弹出最顶端的寄存器。
+
+
+When the FPU is instructed to POP a value, it would first remove it from whichever
+compartment would currently be at the TOP and then turn the barrel
+counter-clockwise by one notch. For example, if BC6 would be at the TOP and
+popped, BC7 would then become the register compartment at the TOP.
+
+当FPU被指定弹出一个值时，不管当前哪个 弹巢(寄存器) 在顶端，FPU会先将它清空，并逆时
+针旋转一格。例如，如果 弹巢6(BC6) 在顶端位置，并被指定弹出，那么 弹巢7(BC7) 将会被
+旋转到最顶端位置。
+
+        Values can be popped only from the TOP compartment of the FPU
+
+        值只能从FPU的顶端位置弹出。
+
+
+    Those BC numbers are never used directly by the programmer. The FPU takes care
+    of remembering where all the 80-bit values are located in its internals and
+    which of its compartments is at the TOP. However, the programmer must remain
+    aware of this internal numbering system.
+
+    这些 弹巢序号(BC#) 从不会被程序员直接使用。FPU只关心所有值的存储位置，以及哪
+    个值位于顶端。无论如何，程序员都必须熟悉这个内部编号系统。
+
+
+For the programmer, while still using the revolving barrel image, the 80-bit
+registers are ALWAYS numbered clockwise from 0 to 7 starting from the TOP. The
+numbers shown in Fig.1 above would therefore never change for referring to
+register numbers in FPU instructions. The register at the TOP would always have
+the number 0.
+
+对程序员来说，一段时间内会一直使用转轮图，80位寄存器 总是以顶端开始，从0到7顺时针
+编号。在图 Fig.1 中所示的寄存器序号，在引用到FPU指令时，是永远不会发生改变的。在顶
+端位置的寄存器总是序号0。
+
+
+The designation ST with its number in parenthesis (such as ST(0), ST(1), etc.) is
+used when reference to a given 80-bit register is required in an FPU instruction.
+(MASM also interprets ST without any explicit number as if ST(0) had been
+specified.)
+
+符号 ST 加圆括号里的编号(如 ST(0)，ST(1)……)，在FPU指令中表示一个 80位寄存器。(
+MASM也没有说明 ST 代指转轮上的哪个位置，但 ST 似乎等同于 ST(0)。)
+
+
+Any value loaded to the FPU must initially be referred to as ST(0) because it can
+only be loaded to the TOP compartment. If the FPU would be instructed to load
+another value while the first one is still there, that second value would now be
+referred to as ST(0) because it has now become the one at the TOP. As a
+consequence, the first value would now have to be referred to as ST(1). If another
+value is loaded, the first value would then have to be referred to as ST(2). After
+popping the last loaded value, that same first value would revert back to being
+referred to as ST(1).
+
+任何加载进FPU的值，都被引用作 ST(0)，因为值只能从最顶端位置导入。如果第一个加载的
+值还存在时，FPU被指定加载另一个值，那么第二个被加载的值被引用作 ST(0)，因为第二
+个值现在处于转轮的最顶端位置。因此，第一个被加载的值现在被引用作 ST(1)。如果再加载
+一个值，那么第一个加载的值被引用作 ST(2)。当弹出最后一个加载的值时，转轮反转一格，
+第一个加载的值又被引用作 ST(1)。
+
+
+That is probably the most complex concept to understand by someone starting to
+learn how to use the FPU. When compared to the CPU where a value in EAX would
+always be referred to as EAX regardless of operations on the other registers, a
+value in an FPU register must be referred to according to its position relative to
+the register at the TOP.
+
+对于开始学习如何使用FPU的读者来说，要理解这个复杂的概念可能要费点工夫。同CPU比较会
+发现，一个叫EAX的寄存器，不管运算操作是否在其他寄存器上进行，这个寄存器还是被引用
+作EAX；FPU寄存器的引用，则必须是根据它和最顶端寄存器的相对位置来引用。
+
+
+Rule #2: The programmer must constantly keep track of the relative location of the
+existing register values while other values may be loaded to or popped from the
+TOP register.
+
+规则 2：当其他值从FPU最顶端的寄存器载入或弹出时，程序员必须时刻追踪那些保存着值的寄
+存器的相对位置。
+
+
+A good programming practice is to insert a comment after each FPU instruction
+which can affect the location of register values, indicating the new ST number of
+each value.
+
+好的编程练习是，在会影响寄存器位置的指令后面加上注释，指出每个有值的寄存器的 ST 序
+数。
+
+
+When a register is popped from the FPU, its current value can no longer be used in
+any operation. If that value would need to be used later, it should be stored in
+memory before popping it and reloaded when required. (Some debuggers may still
+show the old value in the popped register but that should only be considered as
+residual "gun powder".)
+
+当一个寄存器的值被弹出时，那么它当前的值就不再被用于任何操作。如果这个值要以备后用
+，可以在弹出之前存入内存，在需要的时候，重新载入。(一些调试器可能会一直显示已经弹
+出寄存器的值，最好应该把它看作是残留的“火药”。)
+
+
+
+16-bit Registers
+16位寄存器
+
+The three 16-bit registers available to the programmer are the control word, the
+status word and the tag word.
+有三个 16位寄存器 可用于编程，它们分别是 控制字，状态字和标签字。
+
+
+Control Word
+控制字
+
+The Control Word 16-bit register is used by the programmer to select between the
+various modes of computation available from the FPU, and to define which
+exceptions should be handled by the FPU or by an exception handler written by the
+programmer.
+
+程序员使用 控制字寄存器 从FPU选择各种可用的计算模式，并且定义哪个异常应该被FPU处理
+，还是被程序员写的异常处理程序处理。
+
+
+The Control Word is divided into several bit fields as depicted in the following
+Fig.1.2.
+
+控制字分成几个字段，如下图 Fig.1.2 所示。
+
+          15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |I C|  R C  |  P C  |IEM|   |P M|U M|O M|Z M|D M|I M|
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+                                  Fig.1.2
+
+The IC field (bit 12) or Infinity Control allows for two types of infinity
+arithmetic:
+
+第12位是IC字段，无穷控制(Infinity Control)的缩写，此字段允许使用两种类型的计算：
+
+0 = Both -infinity and +infinity are treated as unsigned infinity (initialized
+state) 
+1 = Respects both -infinity and +infinity
+
+0 = 负无穷和正无穷都被视为无符号无穷 (初始化状态)
+1 = 负无穷和正无穷都维持原状
+
+    This field has been retained for compatibility with the 287 and earlier
+    co-processors. In the more modern FPUs, this bit is disregarded and both
+    -infinity and +infinity are respected.
+
+    保留该字段是为了兼容278和更早之前的协处理器。在现代更多的FPU中，该字段被忽略，
+    并且负无穷和正无穷维持原状。
+
+
+The RC field (bits 11 and 10) or Rounding Control determines how the FPU will
+round results in one of four ways:
+
+第11位和第10位是RC字段，舍入控制(Rounding Control)的缩写，此字段决定FPU将选择以
+下四种方式中的哪一种来进行舍入操作：
+
+00 = Round to nearest, or to even if equidistant (this is the initialized state) 
+01 = Round down (toward -infinity) 
+10 = Round up (toward +infinity) 
+11 = Truncate (toward 0)
+
+00 = 舍入到最近，即使是等距的 (初始化状态) o_0
+01 = 向下舍入 (负无穷方向)
+10 = 向上舍入 (正无穷方向)
+11 = 截断 (偏向0)
+
+
+The PC field (bits 9 and 8) or Precision Control determines to what precision the
+FPU rounds results after each arithmetic instruction in one of three ways:
+
+第9位和第8位是PC字段，精度控制(Precision Control)的缩写，此字段决定FPU舍入算术指令
+结果的精度：
+
+
+00 = 24 bits (REAL4) 
+01 = Not used 
+10 = 53 bits (REAL8) 
+11 = 64 bits (REAL10) (this is the initialized state)
+
+00 = 24位 (REAL4)
+01 = 不使用
+10 = 53位 (REAL8)
+11 = 64位 (REAL10) (初始化状态)
+
+
+The IEM field (bit 7) or Interrupt Enable Mask determines whether any of the
+interrupt masks will be enabled (bit = 0) or all those masks will be disabled (bit
+= 1). This bit field is set to 1 in the initialized state. (This field is also for
+compatibility with early co-processors and not used anymore.)
+
+第7位是IEM字段，中断启用屏蔽(Interrupt Enable Mask)的缩写，此字段决定是否屏蔽所有
+的中断(bit = 0)，还是启用所有中断(bit = 1)。在初始化状态此字段设置为1。(此字段是为
+了兼容早期的协处理器，并且现在不再使用。)
+
+
+Bits 5-0 are the interrupt masks. In the initialized state, they are all set to 1
+which lets the FPU handle all exceptions. When any one of them is set to 0, it
+instruct the FPU to generate an interrupt whenever that particular exception is
+detected so that the program will take whatever action may be deemed necessary
+before returning control to the FPU.
+
+第5位到第0位都是中断屏蔽。在初始化状态下，它们都设为1以便FPU处理所有的异常。每当特
+定的异常被检测到时，其中任何一位会被设置为0，这时FPU产生一个中断，在程序把控制权交
+给FPU之前，程序员可以采取必要的行动来处理异常。
+
+
+The various interrupt masks available are:
+PM (bit 5) or Precision Mask 
+UM (bit 4) or Underflow Mask 
+OM (bit 3) or Overflow Mask 
+ZM (bit 2) or Zero divide Mask 
+DM (bit 1) or Denormalized operand Mask 
+IM (bit 0) or Invalid operation Mask
+
+以下是可用的中断屏蔽：
+PM (第5位) 精度屏蔽(Precision Mask)
+UM (第4位) 下溢屏蔽(Underflow Mask)
+OM (第3位) 上溢屏蔽(Overflow Mask)
+ZM (第2位) 零除屏蔽(Zero divide Mask)
+DM (第1位) 非正常操作数屏蔽(Denormalized operand Mask)
+IM (第0位) 无效操作数屏蔽(Invalid operand Mask)
+
+
+(A more detailed description of the various exceptions and how the FPU would
+normally handle them is given in the following section. This document will not
+describe how interrupts are generated and transmitted nor how to respond to such
+interrupts.)
+
+(下一章将详细介绍各种异常，以及通常情况下FPU是如何处理它们的。本文档不会介绍中断是
+如何产生和传送的，也不会说明如何响应这些中断。)
+
+
+Bits 15-13 and 6 are reserved or unused.
+
+第15位第13位和第6位是保留位，不可用。
+
+See the FSTCW and the FLDCW instructions for details on how to access the Control
+Word register.
+
+要访问控制字寄存器，请查看FSSTCW和FLDCW指令的相关细节。
+
+
+Status word
+状态字
+
+The Status Word 16-bit register indicates the general condition of the FPU. Its
+content may change after each instruction is completed. Part of it cannot be
+changed directly by the programmer. It can, however, be accessed indirectly at any
+time to inspect its content.
+
+状态字寄存器 指示了FPU的总体状况，其内容可能在每条指令执行后改变。部分字段不能被程
+序员直接改变。然而，程序员可以在任何时候间接地访问 状态字寄存器 查看其内容。
+
+
+The Status Word is divided into several bit fields as depicted in the following
+Fig.1.3.
+状态字分成几个字段，如下图 Fig.1.3 所示：
+
+          15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        | B |C 3|   T O P   |C 2|C 1|C 0|I R|S F| P | U | O | Z | D | I |
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+When the FPU is initialized, all the bits are reset to 0.
+
+FPU初始化后，状态字寄存器 所有字段被重置为0。
+
+
+The B field (bit 15) indicates if the FPU is busy (B=1) while executing an
+instruction, or is idle (B=0).
+
+第15位是B字段，当FPU在执行一条指令时，指示FPU是繁忙状态(B=1)，否则就是空闲状态(
+B=0)。
+
+
+The C3 (bit 14) and C2 - C0 (bits 10-8) fields contain the condition codes
+following the execution of some instructions such as comparisons. These codes will
+be explained in detail for each instruction affecting those fields.
+
+第14位是C3字段，第10位至第8位分别是C2，C1，C0字段。这4个字段包含一些指令的执行结果
+，如比较指令。每个影响这4个字段的指令，都将会详细地说明。
+
+
+The TOP field (bits 13-11) is where the FPU keeps track of which of its 80-bit
+registers is at the TOP. The BC numbers described previously for the FPU's
+internal numbering system of the 80-bit registers would be displayed in that
+field. When the programmer specifies one of the FPU 80-bit registers ST(x) in an
+instruction, the FPU adds (modulo 8) the ST number supplied to the value in this
+TOP field to determine in which of its registers the required data is located.
+
+第13位至第11位是TOP字段，此字段追踪位于顶端位置的 80位寄存器。前面介绍的弹巢序号
+(BC#)显示在该字段中。当程序员在一条指令中指定一个 80位寄存器 ST(x) 时，:(
+
+
+The IR field (bit 7) or Interrupt Request gets set to 1 by the FPU while an
+exception is being handled and gets reset to 0 when the exception handling is
+completed. When the interrupt is masked in the Control Word for the FPU to handle
+the exception, this bit may never be seen to be set while stepping through the
+instructions with a debugger. However, if the programmer handles the interrupt,
+that bit should remain set until the interrupt handling routine is completed.
+
+第7位是IR字段，中断请求(Interrupt Request)的缩写。当一个异常正在被处理时，此字段被
+设为1，异常处理完成后，设回0。当中断在控制字中被屏蔽时，如果是在调试器中单步执行的
+的话，此字段可能永远不会被设置。然而，如果是程序员来处理中断，那么此字段总是保留设
+置，直到中断处理程序执行完成。
+
+
+Bits 6-0 are flags raised by the FPU whenever it detects an exception. Those
+exception flags are cumulative in the sense that, once set (bit=1), they are not
+reset (bit=0) by the result of a subsequent instruction which, by itself, would
+not have raised that flag. Those flags can only be reset by either initializing
+the FPU (FINIT instruction) or by explicitly clearing those flags (FCLEX
+instruction).
+
+每当FPU检测到异常时，FPU会在第6位至第0位上做标记。这些异常标记随检测而累积，一旦被
+置位(bit = 1)，它们不会再被后续指令影响而重置(bit = 0)。对这7个字段来说，自己也没
+有产生标记的能力。这些标记只能被初始化FPU指令(FINIT)，或者清除标记指令(FCLEX)重置。
+
+
+The SF field (bit6) or Stack Fault exception is set whenever an attempt is made
+to either load a value into a register which is not free (the C1 bit would also
+get set to 1) or pop a value from a register which is free (and the C1 bit would
+get reset to 0). (Such stack fault is also treated as an invalid operation and the
+I field flag bit0 would thus also be set by this exception; see below.)
+
+第6位是SF字段，栈错误异常的缩写(Stack Fault exception)。此字段在两种情况下会被置
+位(bit = 1)，其一，在一个未弹出值的80位寄存器中装入值(C1位也会置位为1)，其二，从一
+个空的80位寄存器中弹出值(C1位被重置为0)。(像这样的栈错误被视为无效操作，第0位的I字
+段也会因此被置位为1；见下。)
+
+
+The P field (bit5) or Precision exception is set whenever some precision is lost
+by instructions which do exact arithmetic. For example, dividing 1 by 10 does not
+yield an exact value in binary arithmetic and would set the P exception flag.
+Another example which sets the P exception flag would be the conversion of a
+REAL10 to a REAL4 when some of the least significant bits would be lost. 
+
+If the FPU handles this exception (when the PM bit is set in the Control Word), it
+rounds the result according to the rounding mode specified in the RC field of the
+Control Word.
+
+第5位是P字段，精度异常(Precision exception)的缩写。当指令在做严格的计算时，丢失一
+些精度会被置位为1。例如，1除以10在二进制里不会产生一个精确的值，P位就应该置位为1。
+另一个P置位为1的例子是，把REAL10类型的值转换成REAL4类型时，一些最低有效位会丢失。
+
+如果FPU在处理这个异常(控制字中PM位置位为1时)，它会根据控制字中RC字段指定的舍入方式
+来进行舍入。
+
+
+The U field (bit4) or Underflow exception flag gets set whenever a value is too
+small (without being equal to 0) to be represented properly. Each of the floating
+point formats has a different limit on the smallest number which can be
+represented. The U flag gets set if the result of an operation exceeds that limit.
+For example, dividing a valid very small number by a large number could exceed the
+limit. A valid REAL10 small number may be much smaller than acceptable for the
+REAL4 or REAL8 formats; in such cases, conversion from the former to the latter
+would also set the U flag. 
+
+If the FPU handles this exception (when the UM bit is set in the Control Word), it
+would denormalize the value until the exponent is in range or ultimately return a
+0.
+
+第4位是U字段，下溢异常(Underflow exception)的缩写。当一个值太小(不是等于0)而无法正
+确表示时，此字段被置位为1。每种浮点格式在能表示的最小数字上都有不同的限制。如果一
+个操作结果越过这种限制，U位就会被置位为1。例如，用一个非常小的数字除以一个非常大的
+数字能越过这种限制。一个很小且有效的REAL10类型的数比可接受的REAL4和REAL8类型的值要
+小得多；在这种情况下，把前者转换为后者会使U字段置位为1。
+
+如果FPU处理这个异常(控制字中UM位为1时)，它会反常化该值，直到返回到指数范围，或者最
+终返回0。
+
+
+The O field (bit3) or Overflow exception flag gets set whenever a value is too
+large in magnitude to be represented properly. Again, each of the floating point
+formats has a different limit on the largest number which can be represented. The
+O flag gets set if the result of an operation exceeds that limit. For example,
+multiplying a valid very large number by another large number could exceed the
+limit. A valid REAL10 large number may be much larger than acceptable for the
+REAL4 or REAL8 formats; conversion from the former to the latter would also set
+the O flag. 
+
+If the FPU handles this exception (when the OM bit is set in the Control Word), it
+would generate a properly signed INFINITY according to the IC flag of the Control
+Word.
+
+第3位是O字段，上溢异常(Overflow exception)的缩写。当一个值太大而无法正确表示时，此
+字段被置位为1。同样的，每种浮点格式在能表示的最大数字上都有不同的限制。如果一个操
+作的执行结果越过这种限制，O位就会被置位为1。例如，用一个非常的大的有效数字乘以另一
+个非大的数字能越过这种限制。一个很大且有效的REAL10类型的数比可接受的REAL4和REAL8类
+型的值要大得多；转换前者为后者会使O字段重置为0。
+
+如果FPU处理这个异常(控制字中OM位为1时)，它会根据控制字中的IC字段产生一个有正确符号
+的无穷大标记。
+
+
+The Z field (bit2) or Zero divide exception flag gets set whenever the division of
+a finite non-zero value by 0 is attempted. 
+
+If the FPU handles this exception (when the ZM bit is set in the Control Word), it
+would generate a properly signed INFINITY according to the XOR of the operand
+signs and then according to the IC flag of the Control Word.
+
+第2位是Z字段，除零异常(Zero divide exception)的缩写。当一个有限非零值除以0时，此字
+段被置位为1。
+
+如果FPU处理这个异常(控制字中ZM位为1时)，

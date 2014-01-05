@@ -1,0 +1,28 @@
+﻿
+==================================================================================
+
+                                 SIMPLY FPU
+
+                           by Raymond Filiatreault
+                               Copyright 2003
+
+           CONTENTS
+           目录
+
+           Introduction
+           简介
+    1      Description of FPU Internals
+           FPU内部部件
+    2      Date types used by the FPU and addressing modes
+    3      Instructions related to the FPU internals
+    4      Data transfer instructions - REAL numbers
+    5      Data transfer instructions - integers
+    6      Data transfer instructions - packed decimals
+    7      Comparison instructions
+    8      Arithmetic instructions - with REAL numbers
+    9      Arithmetic instructions - with integer numbers
+    10     Trigonometric instructions
+    11     Logarithmic and exponential instructions
+    12     Other instructions
+    13     Commented example
+Appendix   Alphabetical list of FPU instructions

@@ -1,0 +1,85 @@
+﻿
+==================================================================================
+
+Introduction
+引言
+
+The FPU, also known as a co-processor, used to be an option when the first PCs
+came on the market. Modern PCs are now all provided with a co-processor. Although
+the original PC-XT has evolved considerably over the years, the FPU itself has not
+changed appreciably during that same period. Apart from a few minor instructions
+having been added, the main improvement has been the extended range of some of the
+existing instructions.
+
+FPU，也叫做协处理器，作为早期PC的配件投入到市场。现代的PC都配置了一个协处理器。尽管
+原始的PC-TX在数年内发生了巨大的演变，但FPU在同一时期内却变化甚微。除了增加几条次要
+的指令外，主要的改进是对一些现存指令的扩充。
+
+
+The entire set of assembler instructions for the FPU is relatively small and could
+be memorized rapidly. Learning which parameter(s) can be used with each
+instruction should take only slightly longer. The main difficulty is in developing
+sound programming techniques to avoid some of the pitfalls peculiar to the FPU.
+
+相对全部汇编指令集而言，FPU指令很少，且容易记住。要熟悉每条指令可以使用哪个(些)参
+数，这可能需要一些时间。最大的困难是在开发过程中，也就是在编程中如何避开一些FPU特
+有的陷阱。
+
+
+The main purpose of this document is to show that using the FPU can be relatively
+easy with minimal effort. Once this basics have been mastered, any computation
+however complex can be performed.
+
+用最少的付出就可以相对容易地使用FPU，是这份文档的目标。只要掌握了这些基础，无论多
+复杂的计算都可以被实现。
+
+The first chapter describes the internals of the FPU and how they function. Some
+of this knowledge is an absolute necessity to use the FPU properly or help later
+in understanding the outcome of some of the instructions. This is followed by a
+chapter describing the various data types which can be used with some of the
+instructions, including a detailed review of the floating point data formats.
+
+第一章描述了FPU的内部部件，以及它们是如何工作的。要正确地使用FPU，或理解一些指令的
+执行结果，那么其中一些知识是绝对需要掌握的。第二章介绍了不同指令可以使用的各种数据
+类型，同时也包括对 浮点数据格式 的详细回顾。
+
+
+The FPU instructions are then discussed in detail in the following chapters which
+regroup them according to some "biased" criteria. Although some description of
+each instruction is available in the Fphelp.hlp file provided with MASM32, a more
+in-depth review is provided with more tangible examples of their usage.
+
+在接下来的章节中，详细说明FPU指令，这些章节是依据一些“偏向性”的条件，进行重新编
+组。虽然每条指令的说明都可以在MASM32提供的 Fphelp.hlp里找到，但本文档将提供一些更
+深入和实际的指令使用例子。
+
+
+The final chapter provides a fully example of a semi-complex computation.
+
+最后一章是一个稍复杂的例子，其中有完整的注释。
+
+It should be noted that this document has been prepared according to the syntax
+used by MASM. Although most other assemblers/compilers should have a similar
+syntax for the FPU instruction mnemonics, their syntax may differ for the
+addressing mode of memory variables. It is also known that some of the
+instructions used without explicit parameters are not supported by some of the
+other assemblers/compilers.
+
+值得注意的是，这份文档使用MASM的语法。虽然大多其他的汇编(编译)器在FPU指令上也有相
+似的语法，但它们可能在内存变量的寻址方式上有所不同。也就是一些没有明显参数的指令，
+不被其他汇编(编译)器所支持。
+
+
+Any comment or suggestion aimed at improving this document will be given due
+consideration. Those can be sent to:
+
+任何有助于改善这份文档的评论或建议，将会被给予考虑。可发送邮件到：
+
+
+rayfil@hotmail.com
+
+
+Please use "Simply FPU" in the subject line to help its retrieval from the ever
+increasing SPAM.
+
+请在主题里使用"Simply FPU"，以帮助其检索不断增加的垃圾邮件。
