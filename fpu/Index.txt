@@ -11,9 +11,13 @@
 
            Introduction
            简介
+
     1      Description of FPU Internals
            FPU内部部件
+
     2      Date types used by the FPU and addressing modes
+           FPU使用的数据类型和寻址模式
+
     3      Instructions related to the FPU internals
     4      Data transfer instructions - REAL numbers
     5      Data transfer instructions - integers
